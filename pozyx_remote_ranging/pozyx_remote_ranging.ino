@@ -36,13 +36,13 @@ SOFTWARE.
 ////////////////// PARAMETERS //////////////////
 ////////////////////////////////////////////////
 
-uint16_t tagsIds[] = {0x6E5B};
+uint16_t tagsIds[] = {0x6f1d};
 uint16_t ownAnchorId = 0x6757;
 uint16_t anchorIds[] = {0x6752, 0x6710, 0x6732, 0x6708, 0x6047};
-bool resetOnFail = true;
+bool resetOnFail = false;
 int maxResets = 10;
 bool logDebug = false;
-bool readTagIMU = false;
+bool readTagIMU = true;
 bool readTagRanging = true;
 
 ////////////////////////////////////////////////
@@ -68,7 +68,7 @@ void setup()
         Serial.println("Starting...");
     }
 
-    if(Pozyx.begin(false, MODE_INTERRUPT, POZYX_INT_MASK_IMU) == POZYX_FAILURE)
+    if(Pozyx.begin() == POZYX_FAILURE)
     {
         Serial.println("ERROR: Unable to connect to POZYX shield");
         Serial.println("Reset required");
@@ -124,29 +124,19 @@ void loop()
     ///////////////////////////////////////////////////////
     // IMU ////////////////////////////////////////////////
     if (readTagIMU) {
-        sensor_data_t sensor_data;
-        uint8_t calibration_status = 0;
+
+        quaternion_t quaternion;
+        linear_acceleration_t linear_acceleration;
+        angular_vel_t angular_vel;
 
         
-        int imuStatus = Pozyx.getAllSensorData(&sensor_data, tagsIds[currentIndexTag]);
-        imuStatus &= Pozyx.getCalibrationStatus(&calibration_status, tagsIds[currentIndexTag]);
-        //quaternion_t quaternion;
-        //linear_acceleration_t linear_acceleration;
-        //angular_vel_t angular_vel;
-
-        
-        // int imuStatus = Pozyx.getQuaternion(&quaternion, tagsIds[currentIndexTag]);
-        // imuStatus &= Pozyx.getLinearAcceleration_mg(&linear_acceleration, tagsIds[currentIndexTag]);
-        // imuStatus &= Pozyx.getAngularVelocity_dps(&angular_vel, tagsIds[currentIndexTag]);
-
-        //int imuStatus = Pozyx.getQuaternion(&quaternion, 0x6E5B);
-        //imuStatus &= Pozyx.getLinearAcceleration_mg(&linear_acceleration, 0x6E5B);
-        //imuStatus &= Pozyx.getAngularVelocity_dps(&angular_vel);
+        int imuStatus = Pozyx.getQuaternion(&quaternion, tagsIds[currentIndexTag]);
+        imuStatus &= Pozyx.getLinearAcceleration_mg(&linear_acceleration, tagsIds[currentIndexTag]);
+        imuStatus &= Pozyx.getAngularVelocity_dps(&angular_vel, tagsIds[currentIndexTag]);
 
         if (imuStatus == POZYX_SUCCESS)
         {
-            //printIMU(tagsIds[currentIndexTag], quaternion, linear_acceleration, angular_vel);
-            printIMU(tagsIds[currentIndexTag], sensor_data);
+            printIMU(tagsIds[currentIndexTag], quaternion, linear_acceleration, angular_vel);
         }
     }
     ///////////////////////////////////////////////////////
@@ -214,7 +204,7 @@ void loop()
             Pozyx.resetSystem();
         }
     }
-    delay(2);
+    delay(20);
 }
 
 
@@ -229,10 +219,11 @@ void printHex(int num, int precision)
 
 
 void printFloat(float32_t value){
-    byte buf[4]; //Quaternion X
     byte *b = (byte*) &value;
-    memcpy(buf,b,sizeof(buf));
-    Serial.write(buf, sizeof(buf));
+    Serial.write(b[0]);
+    Serial.write(b[1]);
+    Serial.write(b[2]);
+    Serial.write(b[3]);
 }
 
 void printIMU(uint16_t tagId, sensor_data_t sensor_data){
