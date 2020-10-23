@@ -35,14 +35,14 @@ SOFTWARE.
 ////////////////// PARAMETERS //////////////////
 ////////////////////////////////////////////////
 
-uint16_t tagsIds[] = {0x6f1d};
-uint16_t ownAnchorId = 0x6757;
-uint16_t anchorIds[] = {0x6752, 0x6710, 0x6732, 0x6708, 0x6047};
-int32_t anchors_x[4] = {0, 4500, 500, 4450, 500};    // anchor x-coorindates in mm
-int32_t anchors_y[4] = {0, 0, 3300, 3500, 0};        // anchor y-coordinates in mm
-int32_t heights[4] = {1500, 1800, 1100, 2000, 1100}; // anchor z-coordinates in mm
+uint16_t tagsIds[] = {0x6a39};
+uint16_t ownAnchorId = 0x607d;
+uint16_t anchorIds[] = {0x6f2f, 0x6e74, 0x6040, 0x6e5b, 0x6030};
+int32_t anchors_x[] = {0, 1000, 4069, 3993, 3700};    // anchor x-coorindates in mm
+int32_t anchors_y[] = {0, 4487, 4487, 2988, 842};        // anchor y-coordinates in mm
+int32_t heights[] = {1172, 206, 1203, 1045, 375}; // anchor z-coordinates in mm
 
-bool resetOnFail = false;
+bool resetOnFail = true;
 int maxResets = 10;
 bool logDebug = false;
 
@@ -100,6 +100,7 @@ void setup()
     Serial.print(major);
     Serial.print(".");
     Serial.println(minor);
+    Serial.println(minor);
 
     if (Pozyx.getUWBSettings(&tagUWBSettings) == POZYX_FAILURE)
     {
@@ -111,7 +112,15 @@ void setup()
 
     delay(100);
 
-    Pozyx.clearDevices(tagsIds[0]);
+    if (logDebug){
+        Serial.println("Clearing devices: ");
+    }
+    Pozyx.clearDevices();
+
+    if (logDebug){
+        Serial.println("Devices cleared.");
+    }
+  
     setAnchorsManual();
     //printCalibrationResult();
     delay(2000);
@@ -126,7 +135,10 @@ void setup()
 
 void setAnchorsManual()
 {
-    for (int i = 0; i < num_anchors; i++)
+    if (logDebug){
+        Serial.println(F("Setting anchors: "));
+    }
+    for (int i = 0; i < numAnchors; i++)
     {
         device_coordinates_t anchor;
         anchor.network_id = anchorIds[i];
@@ -137,9 +149,13 @@ void setAnchorsManual()
         Pozyx.addDevice(anchor, tagsIds[0]);
     }
 
-    if (num_anchors > 4)
+    if (numAnchors > 4)
     {
-        Pozyx.setSelectionOfAnchors(POZYX_ANCHOR_SEL_AUTO, num_anchors);
+        Pozyx.setSelectionOfAnchors(POZYX_ANCHOR_SEL_AUTO, numAnchors);
+    }
+
+    if (logDebug){
+        Serial.println(F("End setting anchors."));
     }
 }
 
@@ -214,7 +230,8 @@ void printCoordinates(coordinates_t coor, uint16_t tagId, int seq)
     if (logDebug)
     {
         Serial.print("POS,0x");
-        Serial.print(network_id, HEX);
+        //Serial.print(network_id, HEX);
+        Serial.print(tagId, HEX);
         Serial.print(",");
         Serial.print(coor.x);
         Serial.print(",");
@@ -272,7 +289,7 @@ void printCoordinates(coordinates_t coor, uint16_t tagId, int seq)
         Serial.print(",");
         Serial.print(pos_error.xz);
         Serial.print(",");
-        Serial.print(pos_error.yz);
+        Serial.println(pos_error.yz);
     }
     else
     {
@@ -296,10 +313,10 @@ void printCoordinates(coordinates_t coor, uint16_t tagId, int seq)
         buf_cov_xy[1] = (pos_error.xy >> 8) & 255;
         Serial.write(buf_cov_xy, sizeof(buf_cov_xy));
 
-        byte buf_cov_xy[2]; //cov_xz
+        byte buf_cov_xz[2]; //cov_xz
         buf_cov_xy[0] = pos_error.xz & 255;
         buf_cov_xy[1] = (pos_error.xz >> 8) & 255;
-        Serial.write(buf_cov_xy, sizeof(buf_cov_xy));
+        Serial.write(buf_cov_xy, sizeof(buf_cov_xz));
 
         byte buf_cov_yz[2]; //cov_yz
         buf_cov_yz[0] = pos_error.yz & 255;
@@ -311,17 +328,17 @@ void printCoordinates(coordinates_t coor, uint16_t tagId, int seq)
     }
 
     // read out the ranges to each anchor and print it
-    if (logDebug)
-    {
-        for (int i = 0; i < num_anchors; i++)
-        {
-            device_range_t range;
-            Pozyx.getDeviceRangeInfo(anchorIds[i], &range);
-            Serial.print(",");
-            Serial.print(range.distance);
-            Serial.print(",");
-            Serial.print(range.RSS);
-        }
-    }
-    Serial.println();
+    // if (logDebug)
+    // {
+    //     for (int i = 0; i < numAnchors; i++)
+    //     {
+    //         device_range_t range;
+    //         Pozyx.getDeviceRangeInfo(anchorIds[i], &range);
+    //         Serial.print(",");
+    //         Serial.print(range.distance);
+    //         Serial.print(",");
+    //         Serial.print(range.RSS);
+    //     }
+    // }
+    // Serial.println();
 }
